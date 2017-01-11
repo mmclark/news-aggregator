@@ -14,4 +14,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Create a namespace that data.js and app.js use
 var APP = APP || {};
