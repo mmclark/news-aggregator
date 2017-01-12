@@ -60,6 +60,26 @@ APP.Main = (function() {
      */
     function onStoryData (key, details) {
 
+	// Grab the div for this story
+	var story = document.getElementById('s-' + key);
+
+	// Fill out details for the story
+	details.time *= 1000;
+	var html = storyTemplate(details);
+	story.innerHTML = html;
+	story.addEventListener('click', onStoryClick.bind(this, details));
+	story.classList.add('clickable');
+
+	// Tick down. When zero we can batch in the next load.
+	storyLoadCount--;
+
+	// Colorize on complete.
+	// if (storyLoadCount === 0)
+	//     colorizeAndScaleStories();
+    }
+
+    function onStoryDataOrig (key, details) {
+
 	// This seems odd. Surely we could just select the story
 	// directly rather than looping through all of them.
 	var storyElements = document.querySelectorAll('.story');
@@ -248,9 +268,11 @@ APP.Main = (function() {
     /**
      * Does this really add anything? Can we do this kind
      * of work in a cheaper way?
+     *
+     * mmc: Seems like this could be replaced by some CSS
      */
     function colorizeAndScaleStories() {
-
+	console.log("colorizeAndScaleStories() ENTER");
 	var storyElements = document.querySelectorAll('.story');
 
 	// It does seem awfully broad to change all the
@@ -318,12 +340,19 @@ APP.Main = (function() {
 	    loadStoryBatch();
     });
 
+    /**
+     * Load a batch of stories into the DOM.  Before calling this function, it's
+     * expected that the 'stories' refers to an array of story IDs from HN.
+     */
     function loadStoryBatch() {
 
+	// We handle a set number of stories per batch.  The storyLoadCount
+	// variable is used as a countdown to let us know when we're done
+	// with the batch.
 	if (storyLoadCount > 0)
 	    return;
 
-	storyLoadCount = count;
+	storyLoadCount = count;	// Initialize to the size of the batch
 
 	var end = storyStart + count;
 	for (var i = storyStart; i < end; i++) {
@@ -331,6 +360,10 @@ APP.Main = (function() {
 	    if (i >= stories.length)
 		return;
 
+	    // Get the story ID and then create the DOM element to hold the full
+	    // story text.  Append to the main div element.  Note that for now,
+	    // the info fields for the story (in the template) are filled with
+	    // placeholders.
 	    var key = String(stories[i]);
 	    var story = document.createElement('div');
 	    story.setAttribute('id', 's-' + key);
@@ -343,6 +376,9 @@ APP.Main = (function() {
 	    });
 	    main.appendChild(story);
 
+	    // Retrieve the story for the current ID.  Note that onStoryData.bind()
+	    // creates a new callback function bound to this, which the current story
+	    // ID as it's first argument.
 	    APP.Data.getStoryById(stories[i], onStoryData.bind(this, key));
 	}
 
@@ -355,6 +391,7 @@ APP.Main = (function() {
     // Call Data.getTopStories(), passing in a function that will
     // be called when the resulting XMLHttpRequest has returned.
     APP.Data.getTopStories(function(data) {
+	console.log(data);
 	stories = data;  // update the stories instance variable
 	loadStoryBatch();  // insert the stories into the DOM
 	main.classList.remove('loading'); // remove the throbber from the main (div) element
